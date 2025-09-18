@@ -3,285 +3,448 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Propuestas de Donantes</title>
+    <title>Chaneque Despierta Donaciones</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; font-size: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .header { text-align: center; background: white; padding: 30px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .header h1 { color: #333; font-size: 3rem; margin-bottom: 15px; }
-        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 25px; margin-bottom: 35px; }
-        .card { background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s; }
-        .card:hover { transform: translateY(-2px); }
-        .card-header { margin-bottom: 20px; }
-        .card-title { font-size: 2rem; font-weight: bold; margin-bottom: 12px; }
-        .card-subtitle { font-size: 1.6rem; color: #666; margin-bottom: 15px; }
-        .card-content { margin-bottom: 20px; }
-        .card-section { margin-bottom: 18px; }
-        .card-label { font-weight: bold; color: #555; font-size: 1.2rem; margin-bottom: 8px; }
-        .card-text { color: #333; line-height: 1.5; font-size: 1.1rem; }
-        .card-date { text-align: right; color: #888; font-size: 1.1rem; font-style: italic; }
-        .footer { text-align: center; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .footer p { font-size: 1.4rem; color: #333; }
-        .footer a { color: #007bff; text-decoration: none; font-weight: bold; }
-        .footer a:hover { text-decoration: underline; }
-        .loading { text-align: center; padding: 60px; color: #666; font-size: 1.6rem; }
-        .error { background: #f8d7da; color: #721c24; padding: 25px; border-radius: 8px; margin: 25px 0; text-align: center; font-size: 1.2rem; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 15px; font-size: 18px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header h1 { font-size: 2.5rem; }
+        .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .metric { background: white; padding: 25px 15px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .metric h3 { color: #666; font-size: 16px; margin-bottom: 12px; }
+        .metric .value { font-size: 28px; font-weight: bold; color: #333; word-break: break-all; }
+        .filters { background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .filter-row { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        .filter-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #333; font-size: 18px; }
+        .filter-group input, .filter-group select { width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 4px; font-size: 20px; }
+        .btn { background: #007bff; color: white; border: none; padding: 18px 25px; border-radius: 4px; cursor: pointer; width: 100%; margin-top: 15px; font-size: 20px; }
+        .btn:hover { background: #0056b3; }
+        .content { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .table-container { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .main-data { background: #e8f5e8; }
+        .secondary-data { background: #fce4ec; margin-top: 20px; padding: 25px; border-top: 2px solid #eee; border-radius: 8px; }
+        .chart-container { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .chart-container h3 { font-size: 1.8rem; margin-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; font-size: 18px; }
+        th, td { padding: 15px 8px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f8f9fa; font-weight: bold; font-size: 16px; }
+        .table-scroll { overflow-x: auto; }
+        .loading { text-align: center; padding: 40px; color: #666; font-size: 20px; }
+        .error { background: #f8d7da; color: #721c24; padding: 20px; border-radius: 4px; margin: 20px 0; font-size: 18px; }
         
-        /* Colores pastel para las tarjetas */
-        .card:nth-child(6n+1) { background: linear-gradient(135deg, #ffeaa7, #fab1a0); }
-        .card:nth-child(6n+2) { background: linear-gradient(135deg, #a8e6cf, #88d8a3); }
-        .card:nth-child(6n+3) { background: linear-gradient(135deg, #ffd3e1, #fd79a8); }
-        .card:nth-child(6n+4) { background: linear-gradient(135deg, #d1ecf1, #74b9ff); }
-        .card:nth-child(6n+5) { background: linear-gradient(135deg, #e8d5ff, #a29bfe); }
-        .card:nth-child(6n+6) { background: linear-gradient(135deg, #ffe8d6, #fdcb6e); }
+        /* Tablet */
+        @media (min-width: 768px) {
+            body { padding: 15px; }
+            .header { padding: 20px; }
+            .header h1 { font-size: 1.8rem; }
+            .metrics { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+            .metric { padding: 20px 15px; }
+            .metric .value { font-size: 20px; }
+            .filter-row { grid-template-columns: repeat(2, 1fr); }
+            .content { grid-template-columns: 2fr 1fr; gap: 20px; }
+            table { font-size: 15px; }
+            th, td { padding: 10px 8px; }
+        }
         
-        @media (max-width: 768px) {
-            .cards-grid { grid-template-columns: 1fr; gap: 20px; }
-            .header h1 { font-size: 2.5rem; }
-            .card { padding: 25px; }
-            .card-title { font-size: 1.8rem; }
-            .card-subtitle { font-size: 1.4rem; }
-            .card-label { font-size: 1.1rem; }
-            .card-text { font-size: 1rem; }
+        /* Desktop */
+        @media (min-width: 1024px) {
+            body { padding: 20px; }
+            .header h1 { font-size: 2rem; }
+            .metrics { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+            .metric { padding: 20px; }
+            .metric .value { font-size: 24px; }
+            .filter-row { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+            .btn { width: auto; }
+            table { font-size: 16px; }
+            th, td { padding: 12px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Propuestas de Donantes</h1>
+            <h1>Chaneque Despierta Donaciones</h1>
         </div>
 
-        <div id="loading" class="loading">Cargando propuestas...</div>
-        <div id="error" class="error" style="display: none;"></div>
-        <div id="cardsContainer" class="cards-grid" style="display: none;"></div>
+        <div class="metrics">
+            <div class="metric">
+                <h3>Existente</h3>
+                <div class="value" id="totalExistente">-</div>
+            </div>
+            <div class="metric">
+                <h3>Tot. En Especie</h3>
+                <div class="value" id="totalEspecie">-</div>
+            </div>
+            <div class="metric">
+                <h3>Can. Tot.</h3>
+                <div class="value" id="cantidadTotal">-</div>
+            </div>
+        </div>
 
-        <div class="footer">
-            <p>Si quieres apoyar alguna de las propuestas, <a href="https://n8n.albored.com/form/prop" target="_blank">haz clic aquí</a> y búscala por el nombre de la propuesta.</p>
+        <div class="filters">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Buscar por Nombre:</label>
+                    <input type="text" id="filterNombre" placeholder="Ingrese nombre...">
+                </div>
+                <div class="filter-group">
+                    <label>Fecha Desde:</label>
+                    <input type="date" id="filterFechaDesde">
+                </div>
+                <div class="filter-group">
+                    <label>Fecha Hasta:</label>
+                    <input type="date" id="filterFechaHasta">
+                </div>
+
+                <div class="filter-group">
+                    <button class="btn" onclick="applyFilters()">Filtrar</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="table-container main-data">
+                <h3>Datos Principales</h3>
+                <div id="loading" class="loading">Cargando datos...</div>
+                <div id="error" class="error" style="display: none;"></div>
+                <div class="table-scroll">
+                    <table id="mainTable" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Nombre</th>
+                                <th>Dinero</th>
+                                <th>Especie</th>
+                                <th>Cant.</th>
+                                <th>Exist.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mainTableBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="secondary-data">
+                    <h3>Donaciones Usadas</h3>
+                    <div class="table-scroll">
+                        <table id="secondaryTable" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Fecha</th>
+                                    <th>Especie</th>
+                                    <th>Uso</th>
+                                    <th>Usada</th>
+                                    <th>Disp.</th>
+                                    <th>E.Usada</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="secondaryTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3>Distribución de Fondos</h3>
+                <canvas id="pieChart" width="300" height="200"></canvas>
+                <h3 style="margin-top: 20px;">Distribución En Especie</h3>
+                <canvas id="especieChart" width="300" height="200"></canvas>
+            </div>
         </div>
     </div>
 
     <script>
+        let allData = [];
+        let filteredData = [];
+        let chart = null;
+
+        function parseNumber(value) {
+            if (!value || value === '') return 0;
+            return parseFloat(value.toString().replace(/[^0-9.-]/g, '')) || 0;
+        }
+        
         function parseValue(value) {
             if (!value || value === '') return '';
             return value.toString().trim();
         }
 
-        function getCSVUrl() {
-            return 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTju1yyGhnl921dWPpi_MauKg_H0MBwEBxCR3jnO2NwJv5J8wAmF99jTeSr-YLTYpvfuYlDrisp36RZ/pub?output=csv&gid=1596068065';
-        }
-
-        function formatDate(dateStr) {
-            if (!dateStr || dateStr.trim() === '') return '';
-            try {
-                // Intentar diferentes formatos de fecha
-                let date;
-                if (dateStr.includes('/')) {
-                    const parts = dateStr.split('/');
-                    if (parts.length === 3) {
-                        // Formato DD/MM/YYYY
-                        date = new Date(parts[2], parts[1] - 1, parts[0]);
-                    }
-                } else {
-                    date = new Date(dateStr);
-                }
-                
-                if (isNaN(date.getTime())) {
-                    return dateStr; // Devolver original si no se puede parsear
-                }
-                
-                return date.toLocaleDateString('es-ES', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-            } catch {
-                return dateStr;
-            }
-        }
-
-        function createCard(data) {
-            const card = document.createElement('div');
-            card.className = 'card';
-            
-            // Formatear aportes con saltos de línea
-            const aportesFormatted = parseValue(data['Que puedo aportar']).replace(/\n/g, '<br>');
-            
-            card.innerHTML = `
-                <div class="card-header">
-                    <div class="card-title">${parseValue(data['Nombre'])}</div>
-                    <div class="card-subtitle">${parseValue(data['Nombre_de_la_Propuesta'])}</div>
-                </div>
-                <div class="card-content">
-                    <div class="card-section">
-                        <div class="card-label">Propuesta:</div>
-                        <div class="card-text">${parseValue(data['Propuesta'])}</div>
-                    </div>
-                    <div class="card-section">
-                        <div class="card-label">Se necesita:</div>
-                        <div class="card-text">${parseValue(data['Se necesita'])}</div>
-                    </div>
-                    <div class="card-section">
-                        <div class="card-label">Qué puedo aportar:</div>
-                        <div class="card-text">${aportesFormatted}</div>
-                    </div>
-                </div>
-                <div class="card-date">${formatDate(data['Fecha'])}</div>
-            `;
-            
-            return card;
-        }
-
         async function loadData() {
-            // Comentado para probar datos reales
-            // if (window.location.hostname === 'localhost' || window.location.hostname === '0.0.0.0') {
-            //     displayCards(sampleData);
-            //     return;
-            // }
-            
             try {
-                console.log('Intentando cargar desde:', getCSVUrl());
-                const response = await fetch(getCSVUrl());
-                console.log('Response status:', response.status);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
+                const response = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vTju1yyGhnl921dWPpi_MauKg_H0MBwEBxCR3jnO2NwJv5J8wAmF99jTeSr-YLTYpvfuYlDrisp36RZ/pub?output=csv&gid=1107887473');
                 const csvText = await response.text();
-                console.log('CSV length:', csvText.length);
-                console.log('First 200 chars:', csvText.substring(0, 200));
-                
-                // Parsear CSV correctamente respetando comillas
-                function parseCSVLine(line) {
-                    const result = [];
-                    let current = '';
-                    let inQuotes = false;
-                    
-                    for (let i = 0; i < line.length; i++) {
-                        const char = line[i];
-                        if (char === '"') {
-                            inQuotes = !inQuotes;
-                        } else if (char === ',' && !inQuotes) {
-                            result.push(current.trim());
-                            current = '';
-                        } else {
-                            current += char;
-                        }
-                    }
-                    result.push(current.trim());
-                    return result;
-                }
                 
                 const lines = csvText.split('\n');
-                const headers = parseCSVLine(lines[0]);
-                console.log('Headers:', headers);
+                const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
                 
-                const rawData = [];
+                allData = [];
                 for (let i = 1; i < lines.length; i++) {
                     if (lines[i].trim()) {
-                        const values = parseCSVLine(lines[i]);
+                        const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
                         const row = {};
                         headers.forEach((header, index) => {
                             row[header] = values[index] || '';
                         });
-                        
-                        if (row['Nombre'] || row['Nombre_de_la_Propuesta']) {
-                            rawData.push(row);
-                        }
+                        allData.push(row);
                     }
                 }
                 
-                // Agrupar registros por nombre de propuesta
-                const groupedData = {};
+                filteredData = [...allData];
+                updateMetrics();
+                updateTable();
+                updateChart();
                 
-                rawData.forEach(row => {
-                    const propuestaNombre = row['Nombre_de_la_Propuesta'];
-                    if (propuestaNombre) {
-                        if (!groupedData[propuestaNombre]) {
-                            groupedData[propuestaNombre] = {
-                                mainRecord: null,
-                                contributors: []
-                            };
-                        }
-                        
-                        // Si tiene propuesta y se necesita, es el registro principal
-                        if (row['Propuesta'] && row['Propuesta'].trim() && row['Se necesita'] && row['Se necesita'].trim()) {
-                            groupedData[propuestaNombre].mainRecord = row;
-                        } else if (row['Que puedo aportar'] && row['Que puedo aportar'].trim()) {
-                            // Es un contribuyente adicional
-                            groupedData[propuestaNombre].contributors.push({
-                                nombre: row['Nombre'],
-                                aporte: row['Que puedo aportar'],
-                                fecha: row['Fecha']
-                            });
-                        }
-                    }
-                });
-                
-                // Crear datos finales combinando registro principal con contribuyentes
-                const data = [];
-                Object.keys(groupedData).forEach(propuestaNombre => {
-                    const group = groupedData[propuestaNombre];
-                    if (group.mainRecord) {
-                        const combinedRecord = { ...group.mainRecord };
-                        
-                        // Agregar contribuyentes al campo "Que puedo aportar"
-                        if (group.contributors.length > 0) {
-                            const allAportes = [];
-                            if (combinedRecord['Que puedo aportar'] && combinedRecord['Que puedo aportar'].trim()) {
-                                allAportes.push(`${combinedRecord['Que puedo aportar']}\n${combinedRecord['Fecha']}`);
-                            }
-                            allAportes.push('------');
-                            group.contributors.forEach(contrib => {
-                                allAportes.push(`${contrib.nombre}: ${contrib.aporte}\n${contrib.fecha}`);
-                            });
-                            combinedRecord['Que puedo aportar'] = allAportes.join('\n\n');
-                        }
-                        
-                        data.push(combinedRecord);
-                    }
-                });
-                
-                console.log('Data loaded:', data.length, 'records');
-                console.log('Sample record:', data[0]);
-                console.log('Grouped data:', data.length, 'records');
-                displayCards(data);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('mainTable').style.display = 'table';
+                document.getElementById('secondaryTable').style.display = 'table';
                 
             } catch (error) {
-                console.error('Error cargando datos:', error);
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('error').style.display = 'block';
-                document.getElementById('error').textContent = `Error: ${error.message}. Revisa la consola para más detalles.`;
+                document.getElementById('error').textContent = 'Error al cargar los datos: ' + error.message;
             }
         }
 
-        function displayCards(data) {
-            const container = document.getElementById('cardsContainer');
-            container.innerHTML = '';
+        function updateMetrics() {
+            let totalExistente = 0;
+            let totalEspecie = 0;
+            let cantidadTotal = 0;
             
-            console.log('Displaying cards for data:', data);
+            filteredData.forEach((row, index) => {
+                const existente = parseNumber(row['Existente']);
+                const cantidad = parseNumber(row['Cantidad']);
+                
+                totalExistente += existente;
+                cantidadTotal += cantidad;
+            });
             
-            if (data.length === 0) {
-                container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">No hay propuestas disponibles en este momento.<br><br>Debug: Revisa la consola para más detalles.</div>';
-            } else {
-                data.forEach(item => {
-                    const card = createCard(item);
-                    container.appendChild(card);
-                });
-            }
+            // Concatenar todos los valores de Tot. En especie
+            const especiesArray = [];
+            const cantidadesArray = [];
             
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('cardsContainer').style.display = 'grid';
+            filteredData.forEach(row => {
+                const especie = parseValue(row['Tot. En especie']);
+                const canTot = parseValue(row['Can.Tot']);
+                
+                if (especie) especiesArray.push(especie);
+                if (canTot) cantidadesArray.push(canTot);
+            });
+            
+            totalEspecie = especiesArray.join('<br>');
+            const totalCanTot = cantidadesArray.join('<br>');
+
+            document.getElementById('totalExistente').textContent = '$' + Math.round(totalExistente);
+            document.getElementById('totalEspecie').innerHTML = totalEspecie;
+            document.getElementById('cantidadTotal').innerHTML = totalCanTot || cantidadTotal.toFixed(0);
+        }
+
+        function updateTable() {
+            const tbody = document.getElementById('mainTableBody');
+            tbody.innerHTML = '';
+
+            filteredData.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                const existente = parseNumber(row['Existente']);
+                const cantidad = parseNumber(row['Cantidad']);
+                const dinero = parseNumber(row['En Dinero']);
+                const especie = parseValue(row['En Especie']);
+                const existencia = parseNumber(row['Existencia']);
+                const cantUsada = parseNumber(row['Cant Usada']);
+                const espUsada = parseNumber(row['Esp Usada']);
+                const totalEspecieRow = parseNumber(row['Total especie']);
+                
+                let valorMostrar;
+                
+                if (dinero > 0) {
+                    // Es donación en dinero - mostrar existencia
+                    valorMostrar = `$${existencia.toFixed(2)}`;
+                } else {
+                    // Es donación en especie - mostrar total especie
+                    valorMostrar = totalEspecieRow > 0 ? totalEspecieRow.toFixed(0) : '';
+                }
+
+                tr.innerHTML = `
+                    <td>${row['FechaDona'] || ''}</td>
+                    <td>${row['Nombre'] || ''}</td>
+                    <td>${row['En Dinero'] || '$0.00'}</td>
+                    <td>${especie}</td>
+                    <td>${cantidad.toFixed(0)}</td>
+                    <td>${valorMostrar}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            updateSecondaryTable();
+        }
+
+        function updateSecondaryTable() {
+            const tbody = document.getElementById('secondaryTableBody');
+            tbody.innerHTML = '';
+
+            filteredData.forEach(row => {
+                const cantUsada = parseNumber(row['Cant Usada']);
+                const espUsada = parseNumber(row['Esp Usada']);
+                
+                if (cantUsada > 0 || espUsada > 0) {
+                    const tr = document.createElement('tr');
+                    const disponible = parseNumber(row['Disponible']);
+                    const totalEspecie = parseNumber(row['Total especie']);
+                    const enEspecie = parseValue(row['En Especie']);
+                    
+                    tr.innerHTML = `
+                        <td>${row['Nombre'] || ''}</td>
+                        <td>${row['FechaUso'] || ''}</td>
+                        <td>${enEspecie}</td>
+                        <td>${row['Se uso en'] || ''}</td>
+                        <td>${cantUsada > 0 ? cantUsada.toFixed(2) : ''}</td>
+                        <td>${disponible.toFixed(2)}</td>
+                        <td>${espUsada > 0 ? espUsada.toFixed(2) : ''}</td>
+                        <td>${totalEspecie.toFixed(2)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            });
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('pieChart').getContext('2d');
+            const ctxEspecie = document.getElementById('especieChart').getContext('2d');
+            
+            let totalDinero = 0;
+            let totalUsado = 0;
+            let totalDisponible = 0;
+            let totalCantidad = 0;
+            let totalEspUsada = 0;
+
+            filteredData.forEach(row => {
+                totalDinero += parseNumber(row['En Dinero']);
+                totalUsado += parseNumber(row['Cant Usada']);
+                totalDisponible += parseNumber(row['Disponible']);
+                totalCantidad += parseNumber(row['Cantidad']);
+                totalEspUsada += parseNumber(row['Esp Usada']);
+            });
+
+            if (chart) chart.destroy();
+
+            chart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Total en Dinero', 'Total Usado', 'Total Disponible'],
+                    datasets: [{
+                        data: [totalDinero, totalUsado, totalDisponible],
+                        backgroundColor: ['#007bff', '#dc3545', '#28a745'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+            
+            // Gráfico de especie - datos por tipo
+            const especieData = {};
+            
+            filteredData.forEach(row => {
+                const nombre = parseValue(row['En Especie']);
+                const cantidad = parseNumber(row['Cantidad']);
+                const espUsada = parseNumber(row['Esp Usada']);
+                const totalEspecie = parseNumber(row['Total especie']);
+                
+                if (nombre && (cantidad > 0 || espUsada > 0 || totalEspecie > 0)) {
+                    if (!especieData[nombre]) {
+                        especieData[nombre] = {
+                            cantidad: 0,
+                            espUsada: 0,
+                            totalEspecie: 0
+                        };
+                    }
+                    especieData[nombre].cantidad += cantidad;
+                    especieData[nombre].espUsada += espUsada;
+                    especieData[nombre].totalEspecie += totalEspecie;
+                }
+            });
+            
+            const labels = Object.keys(especieData);
+            
+            new Chart(ctxEspecie, {
+                type: 'doughnut',
+                data: {
+                    labels: labels.map(label => {
+                        const data = especieData[label];
+                        return `${label} (${data.cantidad - data.espUsada}/${data.cantidad})`;
+                    }),
+                    datasets: [{
+                        data: labels.map(label => especieData[label].cantidad - especieData[label].espUsada),
+                        backgroundColor: [
+                            '#28a745', '#007bff', '#ffc107', '#dc3545', '#6f42c1', 
+                            '#fd7e14', '#20c997', '#e83e8c', '#6c757d', '#17a2b8'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 8,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function applyFilters() {
+            const nombreFilter = document.getElementById('filterNombre').value.toLowerCase();
+            const fechaDesde = document.getElementById('filterFechaDesde').value;
+            const fechaHasta = document.getElementById('filterFechaHasta').value;
+
+
+            filteredData = allData.filter(row => {
+                if (nombreFilter && !row['Nombre'].toLowerCase().includes(nombreFilter)) {
+                    return false;
+                }
+
+                if (fechaDesde || fechaHasta) {
+                    const fechaDona = new Date(row['FechaDona']);
+                    if (fechaDesde && fechaDona < new Date(fechaDesde)) return false;
+                    if (fechaHasta && fechaDona > new Date(fechaHasta)) return false;
+                }
+
+
+
+                return true;
+            });
+
+            updateMetrics();
+            updateTable();
+            updateChart();
         }
 
         function checkAccess() {
             const referrer = document.referrer;
+            const userAgent = navigator.userAgent;
             const urlParams = new URLSearchParams(window.location.search);
             
             // Verificar si viene de n8n
             const isFromN8N = referrer.includes('n8n.albored.com') || 
+                             referrer.includes('dashchan') ||
                              urlParams.get('source') === 'n8n' ||
                              sessionStorage.getItem('n8n_access') === 'true';
             
@@ -299,19 +462,16 @@
             `;
             return false;
         }
-
+        
         document.addEventListener('DOMContentLoaded', function() {
             if (checkAccess()) {
                 loadData();
             }
         });
 
-        // Auto-refresh cada 10 minutos
         setInterval(() => {
-            if (document.getElementById('cardsContainer').style.display !== 'none') {
-                loadData();
-            }
-        }, 600000);
+            loadData();
+        }, 300000);
     </script>
 </body>
 </html>
