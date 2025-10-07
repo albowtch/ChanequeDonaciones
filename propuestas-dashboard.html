@@ -58,7 +58,7 @@
         <div id="cardsContainer" class="cards-grid" style="display: none;"></div>
 
         <div class="footer">
-            <p>Si quieres apoyar alguna de las propuestas, <a href="https://n8n.albored.com/form/prop" target="_blank">haz clic aquí</a> y búscala por el nombre de la propuesta.</p>
+            <p>Si quieres apoyar alguna de las propuestas, <a href="#" id="apoyarLink" target="_blank">haz clic aquí</a> y búscala por el nombre de la propuesta.</p>
         </div>
     </div>
 
@@ -302,6 +302,18 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             if (checkAccess()) {
+                // Obtener user_id de la URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const userId = urlParams.get('user_id');
+                
+                // Actualizar enlace de apoyo con user_id
+                const apoyarLink = document.getElementById('apoyarLink');
+                if (userId) {
+                    apoyarLink.href = `https://n8n.albored.com/form/prop?user_id=${userId}`;
+                } else {
+                    apoyarLink.href = 'https://n8n.albored.com/form/prop';
+                }
+                
                 loadData();
             }
         });
