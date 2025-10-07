@@ -197,21 +197,26 @@
 
         async function loadData() {
             try {
-                const response = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vTju1yyGhnl921dWPpi_MauKg_H0MBwEBxCR3jnO2NwJv5J8wAmF99jTeSr-YLTYpvfuYlDrisp36RZ/pub?output=csv&gid=1107887473');
+                const response = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vTju1yyGhnl921dWPpi_MauKg_H0MBwEBxCR3jnO2NwJv5J8wAmF99jTeSr-YLTYpvfuYlDrisp36RZ/pub?output=csv&gid=1904984712');
                 const csvText = await response.text();
                 
                 const lines = csvText.split('\n');
-                const headers = parseCSVLine(lines[0]);
-                
                 allData = [];
+                
+                // Procesar eventos (ID, Timestamp, Evento, Donante, Especie, Cantidad, Dinero, Uso)
                 for (let i = 1; i < lines.length; i++) {
                     if (lines[i].trim()) {
-                        const values = parseCSVLine(lines[i]);
-                        const row = {};
-                        headers.forEach((header, index) => {
-                            row[header] = values[index] || '';
+                        const cols = lines[i].split(',');
+                        allData.push({
+                            id: cols[0] || '',
+                            timestamp: cols[1] || '',
+                            evento: cols[2] || '',
+                            donante: cols[3] || '',
+                            especie: cols[4] || '',
+                            cantidad: parseFloat(cols[5]) || 0,
+                            dinero: parseFloat(cols[6]) || 0,
+                            uso: cols[7] || ''
                         });
-                        allData.push(row);
                     }
                 }
                 
@@ -232,71 +237,34 @@
         }
 
         function updateMetrics() {
-            let totalExistente = 0;
-            let totalEspecie = 0;
-            let cantidadTotal = 0;
+            const resumen = calcularResumen();
             
-            filteredData.forEach((row, index) => {
-                const existente = parseNumber(row['Existente']);
-                const cantidad = parseNumber(row['Cantidad']);
-                
-                totalExistente += existente;
-                cantidadTotal += cantidad;
-            });
+            const totalDinero = Object.values(resumen).reduce((sum, r) => sum + r.dineroIngreso, 0);
+            const dineroUsado = Object.values(resumen).reduce((sum, r) => sum + r.dineroGasto, 0);
+            const especiesUnicas = Array.from(new Set(Object.values(resumen).flatMap(r => Array.from(r.especies)))).filter(e => e.trim() !== '');
             
-            // Concatenar todos los valores de Tot. En especie
-            const especiesArray = [];
-            const cantidadesArray = [];
-            
-            filteredData.forEach(row => {
-                const especie = parseValue(row['Tot. En especie']);
-                const canTot = parseValue(row['Can.Tot']);
-                
-                if (especie) especiesArray.push(especie);
-                if (canTot) cantidadesArray.push(canTot);
-            });
-            
-            totalEspecie = especiesArray.join('<br>');
-            const totalCanTot = cantidadesArray.join('<br>');
-
-            document.getElementById('totalExistente').textContent = '$' + Math.round(totalExistente);
-            document.getElementById('totalEspecie').innerHTML = totalEspecie;
-            document.getElementById('cantidadTotal').innerHTML = totalCanTot || cantidadTotal.toFixed(0);
+            document.getElementById('totalExistente').textContent = '$' + (totalDinero - dineroUsado).toFixed(2);
+            document.getElementById('totalEspecie').innerHTML = especiesUnicas.length > 0 ? especiesUnicas.join('<br>') : 'Sin especies';
+            document.getElementById('cantidadTotal').textContent = filteredData.filter(e => e.evento === 'INGRESO').length;
         }
 
         function updateTable() {
             const tbody = document.getElementById('mainTableBody');
             tbody.innerHTML = '';
-
-            filteredData.forEach(row => {
+            
+            const resumen = calcularResumen();
+            
+            Object.keys(resumen).forEach(donante => {
+                const data = resumen[donante];
                 const tr = document.createElement('tr');
                 
-                const existente = parseNumber(row['Existente']);
-                const cantidad = parseNumber(row['Cantidad']);
-                const dinero = parseNumber(row['En Dinero']);
-                const especie = parseValue(row['En Especie']);
-                const existencia = parseNumber(row['Existencia']);
-                const cantUsada = parseNumber(row['Cant Usada']);
-                const espUsada = parseNumber(row['Esp Usada']);
-                const totalEspecieRow = parseNumber(row['Total especie']);
-                
-                let valorMostrar;
-                
-                if (dinero > 0) {
-                    // Es donación en dinero - mostrar existencia
-                    valorMostrar = `$${existencia.toFixed(2)}`;
-                } else {
-                    // Es donación en especie - mostrar total especie
-                    valorMostrar = totalEspecieRow > 0 ? totalEspecieRow.toFixed(0) : '';
-                }
-
                 tr.innerHTML = `
-                    <td>${row['FechaDona'] || ''}</td>
-                    <td>${row['Nombre'] || ''}</td>
-                    <td>${row['En Dinero'] || '$0.00'}</td>
-                    <td>${especie}</td>
-                    <td>${cantidad.toFixed(0)}</td>
-                    <td>${valorMostrar}</td>
+                    <td>${data.fechaIngreso}</td>
+                    <td>${donante}</td>
+                    <td>$${data.dineroIngreso.toFixed(2)}</td>
+                    <td>${Array.from(data.especies).join(', ')}</td>
+                    <td>${data.cantidadIngreso}</td>
+                    <td>$${(data.dineroIngreso - data.dineroGasto).toFixed(2)}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -307,26 +275,23 @@
         function updateSecondaryTable() {
             const tbody = document.getElementById('secondaryTableBody');
             tbody.innerHTML = '';
-
-            filteredData.forEach(row => {
-                const cantUsada = parseNumber(row['Cant Usada']);
-                const espUsada = parseNumber(row['Esp Usada']);
-                
-                if (cantUsada > 0 || espUsada > 0) {
+            
+            const resumen = calcularResumen();
+            
+            Object.keys(resumen).forEach(donante => {
+                const data = resumen[donante];
+                if (data.usos.size > 0) {
                     const tr = document.createElement('tr');
-                    const disponible = parseNumber(row['Disponible']);
-                    const totalEspecie = parseNumber(row['Total especie']);
-                    const enEspecie = parseValue(row['En Especie']);
                     
                     tr.innerHTML = `
-                        <td>${row['Nombre'] || ''}</td>
-                        <td>${row['FechaUso'] || ''}</td>
-                        <td>${enEspecie}</td>
-                        <td>${row['Se uso en'] || ''}</td>
-                        <td>${cantUsada > 0 ? cantUsada.toFixed(2) : ''}</td>
-                        <td>${disponible.toFixed(2)}</td>
-                        <td>${espUsada > 0 ? espUsada.toFixed(2) : ''}</td>
-                        <td>${totalEspecie.toFixed(2)}</td>
+                        <td>${donante}</td>
+                        <td>${data.fechaGasto}</td>
+                        <td>${Array.from(data.especies).join(', ')}</td>
+                        <td>${Array.from(data.usos).join(', ')}</td>
+                        <td>${data.dineroGasto.toFixed(2)}</td>
+                        <td>${(data.dineroIngreso - data.dineroGasto).toFixed(2)}</td>
+                        <td>${data.cantidadGasto}</td>
+                        <td>${data.cantidadIngreso - data.cantidadGasto}</td>
                     `;
                     tbody.appendChild(tr);
                 }
@@ -337,26 +302,18 @@
             const ctx = document.getElementById('pieChart').getContext('2d');
             const ctxEspecie = document.getElementById('especieChart').getContext('2d');
             
-            let totalDinero = 0;
-            let totalUsado = 0;
-            let totalDisponible = 0;
-            let totalCantidad = 0;
-            let totalEspUsada = 0;
-
-            filteredData.forEach(row => {
-                totalDinero += parseNumber(row['En Dinero']);
-                totalUsado += parseNumber(row['Cant Usada']);
-                totalDisponible += parseNumber(row['Disponible']);
-                totalCantidad += parseNumber(row['Cantidad']);
-                totalEspUsada += parseNumber(row['Esp Usada']);
-            });
+            const resumen = calcularResumen();
+            
+            const totalDinero = Object.values(resumen).reduce((sum, r) => sum + r.dineroIngreso, 0);
+            const totalUsado = Object.values(resumen).reduce((sum, r) => sum + r.dineroGasto, 0);
+            const totalDisponible = totalDinero - totalUsado;
 
             if (chart) chart.destroy();
 
             chart = new Chart(ctx, {
                 type: 'pie',
                 data: {
-                    labels: ['Total en Dinero', 'Total Usado', 'Total Disponible'],
+                    labels: ['Total Donado', 'Total Usado', 'Disponible'],
                     datasets: [{
                         data: [totalDinero, totalUsado, totalDisponible],
                         backgroundColor: ['#007bff', '#dc3545', '#28a745'],
@@ -374,27 +331,20 @@
                 }
             });
             
-            // Gráfico de especie - datos por tipo
+            // Gráfico de especies
             const especieData = {};
             
-            filteredData.forEach(row => {
-                const nombre = parseValue(row['En Especie']);
-                const cantidad = parseNumber(row['Cantidad']);
-                const espUsada = parseNumber(row['Esp Usada']);
-                const totalEspecie = parseNumber(row['Total especie']);
-                
-                if (nombre && (cantidad > 0 || espUsada > 0 || totalEspecie > 0)) {
-                    if (!especieData[nombre]) {
-                        especieData[nombre] = {
-                            cantidad: 0,
-                            espUsada: 0,
-                            totalEspecie: 0
+            Object.values(resumen).forEach(data => {
+                data.especies.forEach(especie => {
+                    if (!especieData[especie]) {
+                        especieData[especie] = {
+                            ingreso: 0,
+                            gasto: 0
                         };
                     }
-                    especieData[nombre].cantidad += cantidad;
-                    especieData[nombre].espUsada += espUsada;
-                    especieData[nombre].totalEspecie += totalEspecie;
-                }
+                    especieData[especie].ingreso += data.cantidadIngreso;
+                    especieData[especie].gasto += data.cantidadGasto;
+                });
             });
             
             const labels = Object.keys(especieData);
@@ -404,10 +354,14 @@
                 data: {
                     labels: labels.map(label => {
                         const data = especieData[label];
-                        return `${label} (${data.cantidad - data.espUsada}/${data.cantidad})`;
+                        const disponible = data.ingreso - data.gasto;
+                        return `${label} (${disponible}/${data.ingreso})`;
                     }),
                     datasets: [{
-                        data: labels.map(label => especieData[label].cantidad - especieData[label].espUsada),
+                        data: labels.map(label => {
+                            const data = especieData[label];
+                            return data.ingreso - data.gasto;
+                        }),
                         backgroundColor: [
                             '#28a745', '#007bff', '#ffc107', '#dc3545', '#6f42c1', 
                             '#fd7e14', '#20c997', '#e83e8c', '#6c757d', '#17a2b8'
@@ -434,24 +388,55 @@
             });
         }
 
+        function calcularResumen() {
+            const resumen = {};
+            
+            filteredData.forEach(evento => {
+                const donante = evento.donante;
+                if (!resumen[donante]) {
+                    resumen[donante] = {
+                        dineroIngreso: 0,
+                        dineroGasto: 0,
+                        cantidadIngreso: 0,
+                        cantidadGasto: 0,
+                        especies: new Set(),
+                        usos: new Set(),
+                        fechaIngreso: '',
+                        fechaGasto: ''
+                    };
+                }
+                
+                if (evento.evento === 'INGRESO') {
+                    resumen[donante].dineroIngreso += evento.dinero;
+                    resumen[donante].cantidadIngreso += evento.cantidad;
+                    if (evento.especie) resumen[donante].especies.add(evento.especie);
+                    resumen[donante].fechaIngreso = evento.timestamp;
+                } else if (evento.evento === 'GASTO') {
+                    resumen[donante].dineroGasto += evento.dinero;
+                    resumen[donante].cantidadGasto += evento.cantidad;
+                    if (evento.uso) resumen[donante].usos.add(evento.uso);
+                    resumen[donante].fechaGasto = evento.timestamp;
+                }
+            });
+            
+            return resumen;
+        }
+        
         function applyFilters() {
             const nombreFilter = document.getElementById('filterNombre').value.toLowerCase();
             const fechaDesde = document.getElementById('filterFechaDesde').value;
             const fechaHasta = document.getElementById('filterFechaHasta').value;
 
-
-            filteredData = allData.filter(row => {
-                if (nombreFilter && !row['Nombre'].toLowerCase().includes(nombreFilter)) {
+            filteredData = allData.filter(evento => {
+                if (nombreFilter && !evento.donante.toLowerCase().includes(nombreFilter)) {
                     return false;
                 }
 
                 if (fechaDesde || fechaHasta) {
-                    const fechaDona = new Date(row['FechaDona']);
-                    if (fechaDesde && fechaDona < new Date(fechaDesde)) return false;
-                    if (fechaHasta && fechaDona > new Date(fechaHasta)) return false;
+                    const fechaEvento = new Date(evento.timestamp);
+                    if (fechaDesde && fechaEvento < new Date(fechaDesde)) return false;
+                    if (fechaHasta && fechaEvento > new Date(fechaHasta)) return false;
                 }
-
-
 
                 return true;
             });
