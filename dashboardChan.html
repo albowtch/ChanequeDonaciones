@@ -113,12 +113,12 @@
                     <table id="mainTable" style="display: none;">
                         <thead>
                             <tr>
+                                <th>Fecha</th>
                                 <th>Donante</th>
                                 <th>Dinero Donado</th>
-                                <th>Dinero Usado</th>
                                 <th>Dinero Disponible</th>
                                 <th>Especies</th>
-                                <th>Usos</th>
+                                <th>Cantidad</th>
                             </tr>
                         </thead>
                         <tbody id="mainTableBody"></tbody>
@@ -135,8 +135,8 @@
                                     <th>Donante</th>
                                     <th>Especie</th>
                                     <th>Cantidad</th>
-                                    <th>Dinero</th>
-                                    <th>Uso</th>
+                                    <th>$ Usado</th>
+                                    <th>Se uso en</th>
                                 </tr>
                             </thead>
                             <tbody id="secondaryTableBody"></tbody>
@@ -233,6 +233,8 @@
                     resumen[donante] = {
                         dineroIngreso: 0,
                         dineroGasto: 0,
+                        cantidadIngreso: 0,
+                        fechaIngreso: '',
                         especies: new Set(),
                         usos: new Set()
                     };
@@ -240,6 +242,8 @@
                 
                 if (evento.evento === 'INGRESO') {
                     resumen[donante].dineroIngreso += evento.dinero;
+                    resumen[donante].cantidadIngreso += evento.cantidad;
+                    resumen[donante].fechaIngreso = evento.timestamp;
                     if (evento.especie) resumen[donante].especies.add(evento.especie);
                 } else if (evento.evento === 'GASTO') {
                     resumen[donante].dineroGasto += evento.dinero;
@@ -255,13 +259,15 @@
                 const disponible = data.dineroIngreso - data.dineroGasto;
                 
                 const tr = document.createElement('tr');
+                const fechaFormateada = data.fechaIngreso ? new Date(data.fechaIngreso).toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit', year: '2-digit'}) : '';
+                
                 tr.innerHTML = `
+                    <td>${fechaFormateada}</td>
                     <td>${donante}</td>
                     <td>$${data.dineroIngreso.toFixed(2)}</td>
-                    <td>$${data.dineroGasto.toFixed(2)}</td>
                     <td>$${disponible.toFixed(2)}</td>
                     <td>${Array.from(data.especies).join(', ')}</td>
-                    <td>${Array.from(data.usos).join(', ')}</td>
+                    <td>${data.cantidadIngreso}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -277,9 +283,11 @@
                 .filter(evento => evento.evento === 'GASTO')
                 .slice().reverse().slice(0, 50)
                 .forEach(evento => {
+                    const fechaFormateada = evento.timestamp ? new Date(evento.timestamp).toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit', year: '2-digit'}) : '';
+                    
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td>${evento.timestamp}</td>
+                        <td>${fechaFormateada}</td>
                         <td>${evento.donante}</td>
                         <td>${evento.especie}</td>
                         <td>${evento.cantidad}</td>
