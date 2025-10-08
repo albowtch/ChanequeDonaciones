@@ -212,15 +212,15 @@
                 .filter(e => e.evento === 'GASTO')
                 .reduce((sum, e) => sum + e.dinero, 0);
             
-            const especiesUnicas = new Set(
+            const especiesUnicas = Array.from(new Set(
                 filteredData
                     .filter(e => e.especie && e.especie.trim() !== '')
                     .map(e => e.especie)
-            ).size;
+            ));
 
             document.getElementById('totalDinero').textContent = `$${totalDinero.toFixed(2)}`;
             document.getElementById('dineroDisponible').textContent = `$${(totalDinero - dineroUsado).toFixed(2)}`;
-            document.getElementById('especiesActivas').textContent = especiesUnicas;
+            document.getElementById('especiesActivas').innerHTML = especiesUnicas.length > 0 ? especiesUnicas.join('<br>') : 'Sin especies';
 
         }
 
